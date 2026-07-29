@@ -1,0 +1,20 @@
+{
+  "id": "/",
+  "name": "OLIMPO",
+  "short_name": "OLIMPO",
+  "description": "Sistema de entrenamiento OLIMPO",
+  "lang": "es",
+  "dir": "ltr",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#09060F",
+  "theme_color": "#09060F",
+  "categories": ["health", "fitness", "lifestyle", "sports"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
