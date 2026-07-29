@@ -233,7 +233,13 @@ var SKILLS=[
   {k:'hswalk',n:'Caminata de manos',stages:['Kick-up contra pared','Equilibrio libre 10s','Caminar 3 pasos','Caminar 10+ pasos']},
   {k:'pistol',n:'Pistol squat',stages:['Asistido (silla/TRX)','Con contrapeso','Negativas libres','Pistol squat completo']},
   {k:'dragon',n:'Dragon flag',stages:['Rodillas dobladas (tuck)','Una pierna extendida','Negativas completas','Dragon flag completo']},
-  {k:'lsit',n:'L-sit',stages:['Rodillas al pecho (tuck)','Una pierna extendida','L-sit en paralelas','L-sit completo 20s+']}
+  {k:'lsit',n:'L-sit',stages:['Rodillas al pecho (tuck)','Una pierna extendida','L-sit en paralelas','L-sit completo 20s+']},
+  {k:'maltese',n:'Maltese',stages:['Maltese lean (apoyo inclinado)','Maltese asistido (bandas)','Maltese negativa','Maltese completo'],god:1},
+  {k:'ironcross',n:'Iron Cross (anillas)',stages:['Support hold en anillas','Cruz asistida (bandas)','Cruz negativa','Iron Cross completo'],god:1},
+  {k:'oahs',n:'Handstand a un brazo',stages:['Handstand libre 60s','Transferencia a 1 brazo asistida','Negativas a 1 brazo','Handstand a 1 brazo completo'],god:1},
+  {k:'plpress',n:'Planche press (piso a planche)',stages:['Planche completo (hold)','Pseudo planche push-ups','Press asistido (bloques)','Planche press completo'],god:1},
+  {k:'typewriter',n:'Typewriter pull-up',stages:['Dominada estricta ×5','Desplazamiento lateral asistido','Typewriter lento','Typewriter completo']},
+  {k:'archerpu',n:'Archer pull-up',stages:['Dominada arqueada asistida','Archer con banda','Negativas archer','Archer pull-up completo']}
 ];
 var GROUPS=['Pecho','Espalda','Trapecios','Hombros','Bíceps','Tríceps','Antebrazos','Cuádriceps','Femorales','Glúteos','Pantorrillas','Core','Cuello','Skills','Explosividad','Acondicionamiento'];
 /* 13 meses: empieza en ABRIL, cierra en MARZO (último). Sol = 27 jun–24 jul. Cada mes su emoji. */
@@ -382,7 +388,7 @@ function cyclesDone(){return Math.floor(S.components/4);}
 var route='hoy',calMonth=null,libGroup='Todos',libQuery='',actExpanded=false,rangosExpanded=false;
 function render(){
   var v=document.getElementById('view');v.className='fade';
-  if(route==='hoy')v.innerHTML=viewHoy();else if(route==='lib')v.innerHTML=viewLib();else if(route==='prog')v.innerHTML=viewProg();else if(route==='cal')v.innerHTML=viewCal();else if(route==='hist')v.innerHTML=viewHist();
+  if(route==='hoy')v.innerHTML=viewHoy();else if(route==='lib')v.innerHTML=viewLib();else if(route==='prog')v.innerHTML=viewProg();else if(route==='cal')v.innerHTML=viewCal();else if(route==='hist')v.innerHTML=viewHist();else if(route==='leyenda')v.innerHTML=viewLeyenda();
   var lo=level();document.getElementById('topBadge').innerHTML='<span>'+lo.lv.e+'</span> <b>'+lo.lv.n+'</b> · ⟳'+cyclesDone()+' · 🔥'+streak();
   renderNav();void v.offsetWidth;v.className='fade';
 }
@@ -509,12 +515,12 @@ function viewProg(){
   h+='<div class="card"><div class="ey" style="margin-bottom:2px">Base · récords</div>';
   BASE.forEach(function(b){var best=bestOf(b.k);h+='<div class="base-log"><span class="bn">'+b.n+'</span>'+(best?'<span class="bv">'+fmtLog(best,b.k)+'</span>':'<span class="dim" style="font-size:11px">sin registro</span>')+'<button class="btn sm" data-log="'+b.k+'">＋</button></div>';});
   h+='</div>';
-  h+='<div class="card"><div class="ey" style="margin-bottom:8px">Árbol de skills</div><div class="dim" style="font-size:10.5px;margin-bottom:10px;line-height:1.5">Progresión real por skill — toca "Avanzar" cuando domines la etapa actual.</div>';
+  h+='<div class="card"><div class="ey" style="margin-bottom:8px">Árbol de skills</div><div class="dim" style="font-size:10.5px;margin-bottom:10px;line-height:1.5">Progresión real por skill — toca "Avanzar" cuando domines la etapa actual. ⚡ = nivel dios del Olimpo.</div>';
   SKILLS.forEach(function(s){
     var raw=S.skills[s.k];var stage=typeof raw==='number'?raw:0;var max=s.stages.length;
     var lbl=stage===0?'Bloqueado':(stage>=max?'🏆 Logrado':'Etapa '+stage+'/'+max+' — '+s.stages[stage-1]);
     var dots='';for(var i=0;i<max;i++)dots+='<i class="'+(i<stage?'on':'')+'"></i>';
-    h+='<div class="skillcard"><div class="sc-name">'+s.n+'</div><div class="sc-stage">'+lbl+'</div><div class="seg" style="margin:8px 0">'+dots+'</div>'+
+    h+='<div class="skillcard"><div class="sc-name">'+(s.god?'⚡ ':'')+s.n+'</div><div class="sc-stage">'+lbl+'</div><div class="seg" style="margin:8px 0">'+dots+'</div>'+
        '<div class="sc-actions">'+(stage<max?'<button class="btn sm pri" data-skillnext="'+s.k+'">Avanzar →</button>':'<button class="btn sm" disabled style="opacity:.55">🏆 Logrado</button>')+
        (stage>0?'<button class="btn sm gho" data-skillreset="'+s.k+'" style="padding:8px 10px">↺</button>':'')+'</div></div>';
   });
@@ -563,6 +569,37 @@ function viewHist(){
   return h;
 }
 
+function viewLeyenda(){
+  var lo=level();
+  var doneSkills=SKILLS.filter(function(s){var st=typeof S.skills[s.k]==='number'?S.skills[s.k]:0;return st>=s.stages.length;});
+  var godsDone=doneSkills.filter(function(s){return s.god;});
+  var runs=streakRuns();var best=runs.length?Math.max.apply(null,runs.map(function(r){return r.len;})):0;
+  var h='<h2 class="view-t">Tu Leyenda</h2><div class="view-s">Lo que has construido, brick by brick.</div>';
+  h+='<div class="card acc" style="text-align:center;padding:28px 16px">'+
+     '<div class="lc" style="width:84px;height:84px;font-size:38px;margin:0 auto 12px">'+lo.lv.e+'</div>'+
+     '<div style="font-size:26px;font-weight:700;color:#fff">'+lo.lv.n+'</div>'+
+     '<div class="dim" style="font-family:var(--mono);font-size:12px;margin-top:4px">'+lo.x+' XP</div></div>';
+  h+='<div class="card"><div class="ey" style="margin-bottom:10px">Racha</div>'+
+     '<div class="base-log"><span class="bn">🔥 Actual</span><span class="bv">'+streak()+' días</span></div>'+
+     '<div class="base-log"><span class="bn">🏆 Mejor histórica</span><span class="bv">'+best+' días</span></div></div>';
+  h+='<div class="card"><div class="ey" style="margin-bottom:12px">Cualidades</div><div class="rings-row">';
+  QUAL.forEach(function(q){var v=Math.min(100,Math.round(S.rings[q.k]||0));var full=v>=100;var dash=106.8;
+    h+='<div class="ringc"><svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="17" fill="none" stroke="rgba(124,92,255,.15)" stroke-width="4"/><circle cx="22" cy="22" r="17" fill="none" stroke="'+q.c+'" stroke-width="4" stroke-linecap="round" stroke-dasharray="'+dash+'" stroke-dashoffset="'+(dash*(100-v)/100)+'" transform="rotate(-90 22 22)"/><text x="22" y="22" text-anchor="middle" dominant-baseline="central" font-size="'+(full?16:11)+'" opacity="'+(full?1:.5)+'">'+q.e+'</text></svg><div class="rl">'+q.n+'</div></div>';});
+  h+='</div></div>';
+  h+='<div class="card acc"><div class="cycbig"><div class="num">'+cyclesDone()+'</div><div style="flex:1"><div class="lbl">Ciclos completados</div></div></div></div>';
+  h+='<div class="card"><div class="ey" style="margin-bottom:8px">Skills logrados · '+doneSkills.length+'/'+SKILLS.length+(godsDone.length?' · ⚡ '+godsDone.length+' de nivel dios':'')+'</div>';
+  if(!doneSkills.length)h+='<div class="dim" style="font-size:12px">Todavía ninguno — el primero está más cerca de lo que crees.</div>';
+  else doneSkills.forEach(function(s){h+='<div class="base-log"><span class="bn">'+(s.god?'⚡ ':'🏆 ')+s.n+'</span></div>';});
+  h+='</div>';
+  h+='<div class="card"><div class="ey" style="margin-bottom:8px">Récords</div>';
+  var anyRecord=false;
+  BASE.forEach(function(b){var best2=bestOf(b.k);if(best2){anyRecord=true;h+='<div class="base-log"><span class="bn">'+b.n+'</span><span class="bv">'+fmtLog(best2,b.k)+'</span></div>';}});
+  if(!anyRecord)h+='<div class="dim" style="font-size:12px">Registra tus bases para que aparezcan aquí.</div>';
+  h+='</div>';
+  h+='<div class="dim" style="text-align:center;font-size:10px;letter-spacing:.2em;text-transform:uppercase;padding:16px 0 4px">OLIMPO · Brick by brick</div>';
+  return h;
+}
+
 document.addEventListener('click',function(ev){
   var t=ev.target.closest('[data-nav],[data-act],[data-check],[data-log],[data-fav],[data-grp],[data-skillnext],[data-skillreset],[data-cal],[data-day],[data-setbase],[data-habitinc],[data-habitdel],[data-habitset]');if(!t)return;
   if(t.dataset.nav){closeSheet();route=t.dataset.nav;if(route==='cal')calMonth=null;render();return;}
@@ -596,7 +633,8 @@ function openMenu(){
   var html='<div class="modal-overlay" id="modalOverlay"><div class="modal-sheet">'+
     '<div class="c-head"><h2 class="view-t" style="margin:0;font-size:19px">Menú</h2><button class="btn sm gho" id="modalClose">Cerrar</button></div>'+
     '<button class="btn full gho" data-nav="lib" style="justify-content:flex-start;margin-bottom:8px">▤ &nbsp;Biblioteca</button>'+
-    '<button class="btn full gho" data-nav="hist" style="justify-content:flex-start">≡ &nbsp;Historial</button>'+
+    '<button class="btn full gho" data-nav="hist" style="justify-content:flex-start;margin-bottom:8px">≡ &nbsp;Historial</button>'+
+    '<button class="btn full gho" data-nav="leyenda" style="justify-content:flex-start">🏆 &nbsp;Tu Leyenda</button>'+
   '</div></div>';
   document.getElementById('modalRoot').innerHTML=html;
   document.getElementById('modalOverlay').addEventListener('click',function(e){if(e.target.id==='modalOverlay')closeSheet();});
