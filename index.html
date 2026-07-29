@@ -308,7 +308,17 @@ var RAW=[
 ["Saco de boxeo",["Heavy bag"],"Acondicionamiento","Máquina","C","Rounds, técnica y ritmo",0,["R","X"]],
 ["Burpees",["Burpee"],"Acondicionamiento","Peso corporal","C","Ritmo constante, respira",0,["R","U"]],
 ["Gradas",["Escaleras","Stairs"],"Acondicionamiento","Peso corporal","C","Sube fuerte, controla la bajada",0,["R","X"]],
-["HIIT en caminadora",["Treadmill HIIT"],"Acondicionamiento","Máquina","C","Sprints con descansos cortos",0,["R","X"]]
+["HIIT en caminadora",["Treadmill HIIT"],"Acondicionamiento","Máquina","C","Sprints con descansos cortos",0,["R","X"]],
+["Press declinado con barra",["Decline bench press"],"Pecho","Barra","C","Enfoca pecho bajo, controla el descenso",0,["F"]],
+["Remo en máquina",["Machine row"],"Espalda","Máquina","C","Pecho apoyado, aprieta escápulas",0,["F"]],
+["Remo Pendlay",["Pendlay row"],"Espalda","Barra","C","Barra al piso cada rep, tirón explosivo",0,["F","X"]],
+["Elevación lateral en polea",["Cable lateral raise"],"Hombros","Polea","A","Tensión constante, sin balanceo",0,["C"]],
+["Curl araña",["Spider curl"],"Bíceps","Mancuerna","A","Banco inclinado, aísla el bíceps",0,["C"]],
+["Sentadilla hack",["Hack squat"],"Cuádriceps","Máquina","C","Espalda pegada, baja controlado",0,["F"]],
+["Zancada búlgara con barra",["Barbell Bulgarian split squat"],"Cuádriceps","Barra","C","Más carga, mismo equilibrio",0,["F"]],
+["Patada de glúteo en máquina",["Glute kickback machine"],"Glúteos","Máquina","A","Aprieta arriba, sin arquear",0,["C"]],
+["Plancha con peso",["Weighted plank"],"Core","Peso corporal","C","Disco en la espalda, mismo control",0,["F","C"]],
+["Jalón tras nuca",["Behind-the-neck pulldown"],"Espalda","Polea","A","Cuidado con el rango, solo si tienes movilidad",0,["C"]]
 ];
 var EX=RAW.map(function(r,i){return {id:i,n:r[0],a:r[1],g:r[2],e:r[3],t:r[4],tip:r[5],base:r[6],q:r[7]};});
 
@@ -328,6 +338,9 @@ if(!S.clean2){
   }
   S.clean2=true;save();
 }
+if(!S.baseSel)S.baseSel={};
+if(!S.habits)S.habits=[];
+if(!S.habitLog)S.habitLog={};
 function save(){DB.set('olimpo:state',S);}
 function allEx(){return EX.concat(S.custom.map(function(c,i){return {id:1000+i,n:c.n,a:c.a||[],g:c.g,e:c.e||'—',t:'C',tip:c.tip||'',base:0,q:[],cust:1};}));}
 
@@ -341,7 +354,7 @@ function level(){var x=xp(),lv=LEVELS[0],i;for(i=0;i<LEVELS.length-1;i++){if(x>=
 function streak(){var days=trainedDays();if(!days.length)return 0;var set={};days.forEach(function(d){set[d]=1;});var c=0,d=new Date();if(!set[todayKey()])d.setDate(d.getDate()-1);for(var i=0;i<3650;i++){var k=d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());if(set[k]){c++;d.setDate(d.getDate()-1);}else break;}return c;}
 function cyclesDone(){return Math.floor(S.components/4);}
 
-var route='hoy',calMonth=null,libGroup='Todos',libQuery='',actExpanded=false,rangosExpanded=false;
+var route='hoy',calMonth=null,libGroup='Todos',libQuery='',actExpanded=false,rangosExpanded=false,habitsEditMode=false;
 function render(){
   var v=document.getElementById('view');v.className='fade';
   if(route==='hoy')v.innerHTML=viewHoy();else if(route==='lib')v.innerHTML=viewLib();else if(route==='prog')v.innerHTML=viewProg();else if(route==='cal')v.innerHTML=viewCal();else if(route==='hist')v.innerHTML=viewHist();
@@ -361,14 +374,15 @@ function viewHoy(){
   h+='<div class="card acc"><div class="today-hd"><div><div class="dk">Ciclo #'+(cyclesDone()+1)+' · componente '+(S.cyclePos+1)+'/4</div><div class="dn">'+day.n+'</div><div class="ds">'+day.sub+'</div></div><button class="btn sm gho" data-act="cycle">Cambiar ↺</button></div>'+
      '<div class="cyc-dots">'+[0,1,2,3].map(function(i){return '<i class="'+(i<inCycle?'on':'')+'"></i>';}).join('')+'</div>'+
      '<div class="dim" style="font-size:10.5px;margin-top:9px;line-height:1.5">El componente avanza al presionar "Completar" — no cambia según la fecha del calendario.</div></div>';
+  h+=viewHabits();
   h+='<div class="card"><div class="c-head" data-act="toggleact" style="cursor:pointer;margin-bottom:'+(actExpanded?'12px':'0')+'"><div class="ey">Activación</div><span class="dim" style="font-size:13px">'+(actExpanded?'Ocultar −':'Ver +')+'</span></div>';
   if(actExpanded)h+='<div class="warm"><span class="k">1</span><div>Sube temperatura — remadora / battle rope / jumping jacks hasta encender el cuerpo</div></div>'+
      '<div class="warm"><span class="k">2</span><div>Movilidad dinámica del patrón del día — hombros, cadera, torácica, muñecas</div></div>'+
      '<div class="warm"><span class="k">3</span><div>Series de aproximación a la base — ligero → medio → cerca del peso real, sin fatigarte</div></div>';
   h+='</div>';
   h+='<div class="card acc"><div class="ey" style="margin-bottom:4px">Base</div>';
-  day.base.forEach(function(bn){var bk=matchBase(bn);var last=bk&&S.logs[bk]&&S.logs[bk].length?S.logs[bk][S.logs[bk].length-1]:null;
-    h+='<div class="base-log"><span class="bn">'+bn+'</span>'+(last?'<span class="bv">'+fmtLog(last,bk)+'</span>':'')+(bk?'<button class="btn sm" data-log="'+bk+'">Registrar</button>':'')+'</div>';});
+  day.base.forEach(function(bn,idx){var effN=S.baseSel[day.k+'|'+idx]||bn;var bk=matchBase(effN);var last=bk&&S.logs[bk]&&S.logs[bk].length?S.logs[bk][S.logs[bk].length-1]:null;
+    h+='<div class="base-log"><span class="bn">'+effN+'</span>'+(last?'<span class="bv">'+fmtLog(last,bk)+'</span>':'')+(bk?'<button class="btn sm" data-log="'+bk+'">Registrar</button>':'')+'<button class="btn sm gho" data-basepick="'+day.k+'|'+idx+'" style="padding:8px 9px" aria-label="Cambiar base">⇄</button></div>';});
   h+='</div>';
   h+='<div class="card"><div class="c-head"><div class="ey">Rutina de hoy</div><span class="dim" style="font-size:11px">'+doneToday.length+'/'+list.length+'</span></div>';
   if(!list.length)h+='<div class="empty">Marca ejercicios ⭐ en La Biblioteca y aparecerán aquí para tu '+day.n+'.</div>';
@@ -378,6 +392,40 @@ function viewHoy(){
   h+='<button class="btn pri full" data-act="complete">Completar '+day.n+' ✓</button>';
   h+='<div class="dim" style="font-size:11px;text-align:center;padding:10px 8px">Puedes completar más de un componente en un día para avanzar el ciclo más rápido.</div>';
   return h;
+}
+function viewHabits(){
+  var tk=todayKey();var log=S.habitLog[tk]||{};
+  var h='<div class="card"><div class="c-head"><div class="ey">Hábitos</div><button class="btn sm gho" data-act="togglehabitedit" style="padding:6px 10px;font-size:11px">'+(habitsEditMode?'Listo':'Editar')+'</button></div>';
+  if(!S.habits.length)h+='<div class="empty" style="padding:6px 4px">Agrega hábitos para trackear — agua, pasos, lectura…</div>';
+  else S.habits.forEach(function(hb){var v=log[hb.id]||0;
+    h+='<div class="exrow"><div class="en" data-habitset="'+hb.id+'" style="cursor:pointer">'+hb.n+'<div class="dim" style="font-size:10px;margin-top:2px">'+v+' / '+hb.goal+' '+hb.unit+'</div></div>'+
+      (habitsEditMode?'<button class="btn sm gho" data-habitdel="'+hb.id+'" style="padding:7px 11px">✕</button>':'<button class="btn sm" data-habitinc="'+hb.id+'" style="padding:8px 12px">+1</button>')+'</div>';
+  });
+  h+='<button class="btn sm gho full" data-act="addhabit" style="margin-top:10px">＋ Agregar hábito</button></div>';
+  return h;
+}
+function habitInc(id){var tk=todayKey();S.habitLog[tk]=S.habitLog[tk]||{};S.habitLog[tk][id]=(S.habitLog[tk][id]||0)+1;save();render();}
+function habitSetExact(id){var hb=S.habits.filter(function(h){return h.id===id;})[0];if(!hb)return;var tk=todayKey();var curr=(S.habitLog[tk]||{})[id]||0;var v=prompt('Valor de hoy — '+hb.n+' ('+hb.unit+'):',curr);if(v===null)return;v=parseFloat(v);if(isNaN(v)||v<0)return;S.habitLog[tk]=S.habitLog[tk]||{};S.habitLog[tk][id]=v;save();render();}
+function addHabit(){var n=prompt('Nombre del hábito (ej. Agua, Pasos, Lectura):');if(!n)return;var unit=prompt('Unidad (ej. vasos, pasos, páginas):','veces')||'veces';var goal=parseFloat(prompt('Meta diaria:','1'))||1;S.habits.push({id:'h'+Date.now(),n:n,unit:unit,goal:goal});save();toast('＋ Hábito agregado');render();}
+function delHabit(id){S.habits=S.habits.filter(function(h){return h.id!==id;});save();render();}
+function pickBaseExercise(ck,idx){
+  var day=CYCLE.filter(function(c){return c.k===ck;})[0];if(!day)return;
+  var seen={};var candidates=allEx().filter(function(e){if(day.groups.indexOf(e.g)<0)return false;if(!(e.base||S.favs.indexOf(e.id)>=0))return false;if(seen[e.n])return false;seen[e.n]=1;return true;});
+  var names=candidates.map(function(e){return e.n;});
+  var msg='Elegí la base para '+day.n+' (posición '+(idx+1)+'):\n0. Restablecer (default: '+day.base[idx]+')\n'+names.map(function(n,i){return (i+1)+'. '+n;}).join('\n');
+  var sel=prompt(msg);if(sel===null)return;var n=parseInt(sel,10);if(isNaN(n))return;
+  var key=ck+'|'+idx;
+  if(n===0)delete S.baseSel[key];else if(names[n-1])S.baseSel[key]=names[n-1];else return;
+  save();toast('✓ Base actualizada');render();
+}
+function setAsBase(exId){
+  var e=allEx().filter(function(x){return x.id===exId;})[0];if(!e)return;
+  var day=CYCLE.filter(function(c){return c.groups.indexOf(e.g)>=0;})[0];
+  if(!day){toast('Este ejercicio no pertenece a ningún componente del ciclo');return;}
+  var curr0=S.baseSel[day.k+'|0']||day.base[0],curr1=S.baseSel[day.k+'|1']||day.base[1];
+  var sel=prompt('Usar "'+e.n+'" como base de '+day.n+' — ¿en cuál posición?\n1. '+curr0+'\n2. '+curr1);
+  var n=parseInt(sel,10);if(n!==1&&n!==2)return;
+  S.baseSel[day.k+'|'+(n-1)]=e.n;save();toast('✓ Base actualizada: '+e.n);render();
 }
 function matchBase(bn){bn=bn.toLowerCase();if(bn.indexOf('fondos')>=0)return 'dips';if(bn.indexOf('dominad')>=0)return 'pullups';if(bn.indexOf('sentadilla')>=0)return 'squat';if(bn.indexOf('press')>=0)return 'ohp';if(bn.indexOf('rumano')>=0)return 'rdl';if(bn.indexOf('l-sit')>=0)return 'lsit';if(bn.indexOf('handstand')>=0)return 'handstand';return null;}
 var KG2LB=2.20462;
@@ -396,7 +444,7 @@ function viewLib(){
   var gs=['Todos','★'].concat(GROUPS);
   h+='<div class="grp-nav">'+gs.map(function(g){return '<button class="pill '+(libGroup===g?'on':'')+'" data-grp="'+g+'">'+g+'</button>';}).join('')+'</div><div class="card">';
   if(!ex.length)h+='<div class="empty">Nada aquí todavía.</div>';
-  ex.forEach(function(e){var fav=S.favs.indexOf(e.id)>=0;h+='<div class="lib-row"><div class="star '+(fav?'on':'')+'" data-fav="'+e.id+'">'+(fav?'★':'☆')+'</div><div class="li"><div class="ln">'+e.n+'</div>'+((e.a&&e.a.length)?'<div class="la">a.k.a. '+e.a.join(' · ')+'</div>':'')+(e.tip?'<div class="lt">'+e.tip+'</div>':'')+'<div class="tagline"><span class="minitag">'+e.g+'</span><span class="minitag">'+e.e+'</span>'+(e.base?'<span class="minitag base">BASE</span>':'')+'</div></div></div>';});
+  ex.forEach(function(e){var fav=S.favs.indexOf(e.id)>=0;var canBase=CYCLE.some(function(c){return c.groups.indexOf(e.g)>=0;});h+='<div class="lib-row"><div class="star '+(fav?'on':'')+'" data-fav="'+e.id+'">'+(fav?'★':'☆')+'</div><div class="li"><div class="ln">'+e.n+'</div>'+((e.a&&e.a.length)?'<div class="la">a.k.a. '+e.a.join(' · ')+'</div>':'')+(e.tip?'<div class="lt">'+e.tip+'</div>':'')+'<div class="tagline"><span class="minitag">'+e.g+'</span><span class="minitag">'+e.e+'</span>'+(e.base?'<span class="minitag base">BASE</span>':'')+'</div>'+(canBase?'<button class="btn sm gho" data-setbase="'+e.id+'" style="margin-top:7px;font-size:11px;padding:6px 10px">Usar como base</button>':'')+'</div></div>';});
   h+='</div><button class="btn full gho" data-act="addex">＋ Agregar ejercicio propio</button>';
   return h;
 }
@@ -466,7 +514,7 @@ function viewHist(){
 }
 
 document.addEventListener('click',function(ev){
-  var t=ev.target.closest('[data-nav],[data-act],[data-check],[data-log],[data-fav],[data-grp],[data-skill],[data-cal],[data-day]');if(!t)return;
+  var t=ev.target.closest('[data-nav],[data-act],[data-check],[data-log],[data-fav],[data-grp],[data-skill],[data-cal],[data-day],[data-basepick],[data-setbase],[data-habitinc],[data-habitdel],[data-habitset]');if(!t)return;
   if(t.dataset.nav){route=t.dataset.nav;if(route==='cal')calMonth=null;render();return;}
   if(t.dataset.day){var dk=t.dataset.day;var hasData=(S.sessions[dk]&&S.sessions[dk].length)||logsOnDate(dk).length;if(hasData){route='hist';render();toast('Mostrando '+fmtDateEs(dk));}else{toast('Sin entreno registrado ese día');}return;}
   if(t.dataset.grp){libGroup=t.dataset.grp;render();return;}
@@ -475,8 +523,15 @@ document.addEventListener('click',function(ev){
   if(t.dataset.check){var tk=todayKey();S.done[tk]=S.done[tk]||[];var id2=+t.dataset.check;var j=S.done[tk].indexOf(id2);if(j>=0)S.done[tk].splice(j,1);else S.done[tk].push(id2);save();render();return;}
   if(t.dataset.skill){var k=t.dataset.skill;var cur=S.skills[k]||'lock';S.skills[k]=cur==='lock'?'wip':cur==='wip'?'done':'lock';if(S.skills[k]==='done'){toast('🏆 Skill logrado');bump('C',5);}save();render();return;}
   if(t.dataset.log){openLogModal(t.dataset.log);return;}
+  if(t.dataset.basepick){var bp=t.dataset.basepick.split('|');pickBaseExercise(bp[0],+bp[1]);return;}
+  if(t.dataset.setbase){setAsBase(+t.dataset.setbase);return;}
+  if(t.dataset.habitinc){habitInc(t.dataset.habitinc);return;}
+  if(t.dataset.habitdel){delHabit(t.dataset.habitdel);return;}
+  if(t.dataset.habitset){habitSetExact(t.dataset.habitset);return;}
   if(t.dataset.act==='toggleact'){actExpanded=!actExpanded;render();return;}
   if(t.dataset.act==='togglerangos'){rangosExpanded=!rangosExpanded;render();return;}
+  if(t.dataset.act==='togglehabitedit'){habitsEditMode=!habitsEditMode;render();return;}
+  if(t.dataset.act==='addhabit'){addHabit();return;}
   if(t.dataset.act==='cycle'){S.cyclePos=(S.cyclePos+1)%4;save();render();return;}
   if(t.dataset.act==='addex'){addExercise();return;}
   if(t.dataset.act==='complete'){completeSession();return;}
