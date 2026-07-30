@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.danielpimentel.olimpo",
+        "sha256_cert_fingerprints": ["50:4C:56:43:27:A9:45:99:39:88:A9:73:12:C6:60:EC:82:C3:DA:F4:7D:07:7F:74:31:4A:58:93:3B:E2:2D:1B"]
+      }
+    }]
